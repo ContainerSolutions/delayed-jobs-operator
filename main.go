@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"k8s.io/utils/clock"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -81,6 +82,7 @@ func main() {
 	if err = (&controllers.DelayedJobReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Clock:  clock.RealClock{},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DelayedJob")
 		os.Exit(1)
