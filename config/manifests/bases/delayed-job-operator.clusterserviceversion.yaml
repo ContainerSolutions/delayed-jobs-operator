@@ -1,0 +1,51 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: delayed-job-operator.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: DelayedJob is the Schema for the delayedjobs API
+      displayName: Delayed Job
+      kind: DelayedJob
+      name: delayedjobs.batch.container-solutions.com
+      version: v1alpha1
+  description: Operator that delays the creation of Kubernetes Jobs until a specified
+    Unix Time
+  displayName: delayed-job-operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - Job
+  - Scheduled Jobs
+  - Delayed Jobs
+  links:
+  - name: Delayed Job Operator
+    url: https://delayed-job-operator.domain
+  maintainers:
+  - email: christiaan.vermeulen@container-solutions.com
+    name: Christiaan Vermeulen
+  maturity: alpha
+  provider:
+    name: Container Solutions
+    url: container-solutions.com
+  version: 0.0.0
