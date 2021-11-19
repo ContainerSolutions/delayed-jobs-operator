@@ -248,8 +248,8 @@ func TestDelayedJobReconciler_ReconcileReturnsRequeueWithDelayEqualToDelayDiffer
 		t.Fatalf("Failed to reconcile without error (%v)", err)
 	}
 
-	if result.RequeueAfter != 60 {
-		t.Errorf("Expected RequeuAfter to equal Duration between DelayUntil and Now(). Expected %d, got %d", 60, result.RequeueAfter)
+	if result.RequeueAfter != 60*time.Second {
+		t.Errorf("Expected RequeuAfter to equal Duration between DelayUntil and Now(). Expected %d, got %d", 60*time.Second, result.RequeueAfter)
 	}
 
 }
