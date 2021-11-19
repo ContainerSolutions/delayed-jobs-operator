@@ -64,17 +64,29 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	logger.Info("Creating job for DelayedJob")
 	// We need to create a job from
-	job := &v1.Job{
-		TypeMeta:   delayedJob.TypeMeta,
-		ObjectMeta: delayedJob.ObjectMeta,
-		Spec:       delayedJob.Spec.JobSpec,
-	}
+	job := r.GetJob(delayedJob)
 	err = r.Client.Create(context.TODO(), job)
 	if err != nil {
 		logger.Error(err, "Could not create job for DelayedJob")
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *DelayedJobReconciler) GetJob(delayedJob *batchv1alpha1.DelayedJob) *v1.Job {
+	return &v1.Job{
+		TypeMeta: delayedJob.TypeMeta,
+		ObjectMeta: ctrl.ObjectMeta{
+			Name:                       delayedJob.Name,
+			GenerateName:               delayedJob.GenerateName,
+			Namespace:                  delayedJob.Namespace,
+			DeletionGracePeriodSeconds: delayedJob.DeletionGracePeriodSeconds,
+			Labels:                     delayedJob.Labels,
+			Annotations:                delayedJob.Annotations,
+			Finalizers:                 delayedJob.Finalizers,
+		},
+		Spec: delayedJob.Spec.JobSpec,
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
