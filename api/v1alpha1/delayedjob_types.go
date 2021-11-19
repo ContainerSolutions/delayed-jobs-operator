@@ -32,10 +32,18 @@ type DelayedJobSpec struct {
 	v1.JobSpec `json:",inline"`
 }
 
+const (
+	ConditionAwaitingDelay = "AwaitingDelay"
+	ConditionCompleted     = "Completed"
+
+	PhaseAwaitingDelay = "AwaitingDelay"
+	PhaseCompleted     = "Completed"
+)
+
 // DelayedJobStatus defines the observed state of DelayedJob
 type DelayedJobStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Phase      string             `json:"phase,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true

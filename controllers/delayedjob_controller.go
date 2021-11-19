@@ -22,6 +22,8 @@ import (
 	"github.com/containersolutions/delayed-jobs-operator/pkg/types"
 	v1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -80,7 +82,44 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			logger.Error(err, "Could not create job for DelayedJob")
 			return ctrl.Result{}, err
 		}
+
+		meta.SetStatusCondition(&delayedJob.Status.Conditions, metav1.Condition{
+			Type:    batchv1alpha1.ConditionAwaitingDelay,
+			Status:  metav1.ConditionFalse,
+			Reason:  "DelayUntilPassed",
+			Message: "DelayUntil has expired and Job has been created",
+		})
+		meta.SetStatusCondition(&delayedJob.Status.Conditions, metav1.Condition{
+			Type:    batchv1alpha1.ConditionCompleted,
+			Status:  metav1.ConditionTrue,
+			Reason:  "JobCreated",
+			Message: "DelayUntil has expired and Job has been created",
+		})
+		err = r.Client.Status().Update(ctx, delayedJob)
+		if err != nil {
+			logger.Error(err, "Failed to update condition")
+			return ctrl.Result{}, err
+		}
+
 		return ctrl.Result{}, nil
+	}
+
+	meta.SetStatusCondition(&delayedJob.Status.Conditions, metav1.Condition{
+		Type:    batchv1alpha1.ConditionAwaitingDelay,
+		Status:  metav1.ConditionTrue,
+		Reason:  "AwaitingDelayUntil",
+		Message: "Waiting for DelayUntil",
+	})
+	meta.SetStatusCondition(&delayedJob.Status.Conditions, metav1.Condition{
+		Type:    batchv1alpha1.ConditionCompleted,
+		Status:  metav1.ConditionFalse,
+		Reason:  "AwaitingDelayUntil",
+		Message: "Waiting for DelayUntil before completion",
+	})
+	err = r.Client.Status().Update(ctx, delayedJob)
+	if err != nil {
+		logger.Error(err, "Failed to update condition")
+		return ctrl.Result{}, err
 	}
 
 	nextRequeue := delayedJob.Spec.DelayUntil - types.Epoch(r.Clock.Now().Unix())
