@@ -3,6 +3,7 @@ kind: DelayedJob
 metadata:
   name: delayedjob-sample
 spec:
+  delayUntil: 1637351107
   template:
     spec:
       containers:

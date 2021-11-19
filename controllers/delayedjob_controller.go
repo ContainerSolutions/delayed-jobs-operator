@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"github.com/containersolutions/delayed-jobs-operator/pkg/types"
 	v1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -83,6 +84,7 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	nextRequeue := delayedJob.Spec.DelayUntil - types.Epoch(r.Clock.Now().Unix())
+	logger.Info(fmt.Sprintf("Waiting for DelayUntil to pass before creating Job in %d seconds", nextRequeue))
 	return ctrl.Result{
 		RequeueAfter: time.Duration(nextRequeue),
 	}, nil
