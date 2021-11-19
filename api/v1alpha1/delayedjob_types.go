@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/containersolutions/delayed-jobs-operator/pkg/types"
 	v1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -26,9 +27,8 @@ import (
 
 // DelayedJobSpec defines the desired state of DelayedJob
 type DelayedJobSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
+	// DelayUntil sets the minimum UNIX Timestamp before Job is created
+	DelayUntil types.Epoch `json:"delayUntil,omitempty"`
 	v1.JobSpec `json:",inline"`
 }
 

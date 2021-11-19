@@ -75,6 +75,11 @@ spec:
                   of the job. More info: https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/'
                 format: int32
                 type: integer
+              delayUntil:
+                description: DelayUntil sets the minimum UNIX Timestamp before Job
+                  is created
+                format: int64
+                type: integer
               manualSelector:
                 description: 'manualSelector controls generation of pod labels and
                   pod selectors. Leave `manualSelector` unset unless you are certain
