@@ -10,7 +10,27 @@ metadata:
           "metadata": {
             "name": "delayedjob-sample"
           },
-          "spec": null
+          "spec": {
+            "backoffLimit": 4,
+            "delayUntil": 1637351107,
+            "template": {
+              "spec": {
+                "containers": [
+                  {
+                    "command": [
+                      "perl",
+                      "-Mbignum=bpi",
+                      "-wle",
+                      "print bpi(2000)"
+                    ],
+                    "image": "perl",
+                    "name": "pi"
+                  }
+                ],
+                "restartPolicy": "Never"
+              }
+            }
+          }
         }
       ]
     capabilities: Basic Install
@@ -37,6 +57,18 @@ spec:
     spec:
       clusterPermissions:
       - rules:
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
         - apiGroups:
           - batch.container-solutions.com
           resources:
@@ -108,7 +140,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: chriscmsoft/delayed-job-controller:v0.0.1
+                image: chriscmsoft/delayed-job-controller:v0.1
                 livenessProbe:
                   httpGet:
                     path: /healthz
