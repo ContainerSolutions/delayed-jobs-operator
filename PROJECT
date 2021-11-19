@@ -1,0 +1,9 @@
+domain: container-solutions.com
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: delayed-job-operator
+repo: github.com/containersolutions/delayed-jobs-operator
+version: "3"
