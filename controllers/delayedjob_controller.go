@@ -26,6 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"time"
 
 	batchv1alpha1 "github.com/containersolutions/delayed-jobs-operator/api/v1alpha1"
 )
@@ -65,7 +66,7 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	if types.Epoch(r.Clock.Now().Unix()) > delayedJob.Spec.DelayUntil {
+	if types.Epoch(r.Clock.Now().Unix()) >= delayedJob.Spec.DelayUntil {
 		logger.Info("Creating job for DelayedJob")
 		// We need to create a job from
 		job := r.GetNewJob(delayedJob)
@@ -78,9 +79,13 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			logger.Error(err, "Could not create job for DelayedJob")
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{}, nil
+	nextRequeue := delayedJob.Spec.DelayUntil - types.Epoch(r.Clock.Now().Unix())
+	return ctrl.Result{
+		RequeueAfter: time.Duration(nextRequeue),
+	}, nil
 }
 
 func (r *DelayedJobReconciler) GetNewJob(delayedJob *batchv1alpha1.DelayedJob) *v1.Job {
