@@ -23,5 +23,31 @@ Essentially a Job is missing the scheduling capability, and a CronJob is missing
 What this Operator tries to achieve is to add a scheduling component to a normal Job.
 
 It will simply delay the execution of a Job until a specified time, 
-also allowing extending that time by editing the `.spec.after` field.
- 
+also allowing extending that time by editing the `.spec.delayUntil` field.
+
+## Usage
+
+The CRD for a delayed job is the same as a normal job, except for `apiVersion`, `kind`, and `.spec.delayUntil`
+
+```yaml
+# New Version and kind
+apiVersion: batch.container-solutions.com/v1alpha1
+kind: DelayedJob
+metadata:
+  name: delayedjob-sample
+spec:
+  
+  # New field to delay the job until a specific time
+  delayUntil: 1637351107
+  
+  # The rest is identical to a normal Job, and in fact uses the same underlying constructs
+  template:
+    spec:
+      containers:
+        - name: pi
+          image: perl
+          command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+      restartPolicy: Never
+  backoffLimit: 4
+```
+
