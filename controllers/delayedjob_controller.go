@@ -65,6 +65,10 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	logger.Info("Creating job for DelayedJob")
 	// We need to create a job from
 	job := r.GetNewJob(delayedJob)
+	err = ctrl.SetControllerReference(delayedJob, job, r.Scheme)
+	if err != nil {
+		logger.Error(err, "Could not set DelayedJob as owner of Job")
+	}
 	err = r.Client.Create(context.TODO(), job)
 	if err != nil {
 		logger.Error(err, "Could not create job for DelayedJob")
