@@ -68,6 +68,7 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	err = r.Client.Create(context.TODO(), job)
 	if err != nil {
 		logger.Error(err, "Could not create job for DelayedJob")
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
