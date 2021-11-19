@@ -64,7 +64,7 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	logger.Info("Creating job for DelayedJob")
 	// We need to create a job from
-	job := r.GetJob(delayedJob)
+	job := r.GetNewJob(delayedJob)
 	err = r.Client.Create(context.TODO(), job)
 	if err != nil {
 		logger.Error(err, "Could not create job for DelayedJob")
@@ -74,7 +74,7 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-func (r *DelayedJobReconciler) GetJob(delayedJob *batchv1alpha1.DelayedJob) *v1.Job {
+func (r *DelayedJobReconciler) GetNewJob(delayedJob *batchv1alpha1.DelayedJob) *v1.Job {
 	return &v1.Job{
 		TypeMeta: delayedJob.TypeMeta,
 		ObjectMeta: ctrl.ObjectMeta{
