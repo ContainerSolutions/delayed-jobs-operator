@@ -86,7 +86,7 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	nextRequeue := delayedJob.Spec.DelayUntil - types.Epoch(r.Clock.Now().Unix())
 	logger.Info(fmt.Sprintf("Waiting for DelayUntil to pass before creating Job in %d seconds", nextRequeue))
 	return ctrl.Result{
-		RequeueAfter: time.Duration(nextRequeue),
+		RequeueAfter: time.Duration(nextRequeue) * time.Second,
 	}, nil
 }
 
