@@ -4,16 +4,19 @@ import (
 	"context"
 	"github.com/containersolutions/delayed-jobs-operator/api/v1alpha1"
 	"github.com/containersolutions/delayed-jobs-operator/controllers"
+	types2 "github.com/containersolutions/delayed-jobs-operator/pkg/types"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	testing2 "k8s.io/utils/clock/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"testing"
+	"time"
 )
 
 func getSimpleJobSpec() batchv1.JobSpec {
@@ -49,7 +52,8 @@ func getSimpleDelayedJobSpec() v1alpha1.DelayedJob {
 			UID: "some-value",
 		},
 		Spec: v1alpha1.DelayedJobSpec{
-			JobSpec: getSimpleJobSpec(),
+			JobSpec:    getSimpleJobSpec(),
+			DelayUntil: types2.Epoch(0),
 		},
 	}
 }
@@ -112,6 +116,7 @@ func TestDelayedJobReconciler_ReconcileCreatesJob(t *testing.T) {
 	controller := controllers.DelayedJobReconciler{
 		Client: clientBuilder.Build(),
 		Scheme: s,
+		Clock:  testing2.NewFakeClock(time.Now()),
 	}
 
 	// Before we reconcile we want to make sure No Job exists inside the client
@@ -154,6 +159,78 @@ func TestDelayedJobReconciler_ReconcileCreatesJob(t *testing.T) {
 	}
 }
 
+func TestDelayedJobReconciler_ReconcileCreatesJobOnlyAfterDelayUntilHasPassed(t *testing.T) {
+	// Setup fake clock first
+	fakeClock := testing2.NewFakeClock(time.Now())
+	fakeClock.SetTime(time.Now())
+
+	delayedJob := getSimpleDelayedJobSpec()
+	delayedJob.Spec.DelayUntil = types2.Epoch(fakeClock.Now().Unix() + 60)
+	s := scheme.Scheme
+	if err := v1alpha1.AddToScheme(s); err != nil {
+		t.Fatalf("Unable to add DelayedJob scheme: (%v)", err)
+	}
+	clientBuilder := fake.NewClientBuilder()
+	clientBuilder.WithObjects(&delayedJob)
+	controller := controllers.DelayedJobReconciler{
+		Client: clientBuilder.Build(),
+		Scheme: s,
+		Clock:  fakeClock,
+	}
+
+	// The time has not yet passed, so if we reconcile, the job should not be created
+	_, err := controller.Reconcile(context.TODO(), reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: delayedJob.Namespace,
+			Name:      delayedJob.Name,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to reconcile without error (%v)", err)
+	}
+
+	// Check that the job does not yet exist
+	job := &batchv1.Job{}
+	err = controller.Client.Get(context.TODO(), client.ObjectKey{
+		Namespace: delayedJob.Namespace,
+		Name:      delayedJob.Name,
+	}, job)
+	if err == nil {
+		// We are expecting an error for NotFound.
+		// If we don't receive an error, the test should fail
+		t.Fatalf("Expected NotFound error when looking for Job. Job was created too early.")
+	}
+	if !errors.IsNotFound(err) {
+		// If the error isn't NotFound, something else is wrong
+		t.Fatalf("Unexpected error returned when looking for Job: (%v)", err)
+	}
+
+	fakeClock.SetTime(time.Now().Add(time.Duration(61) * time.Second))
+	controller.Clock = fakeClock
+	_, err = controller.Reconcile(context.TODO(), reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: delayedJob.Namespace,
+			Name:      delayedJob.Name,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to reconcile without error (%v)", err)
+	}
+
+	// Now we should see the Job in the client
+	err = controller.Client.Get(context.TODO(), client.ObjectKey{
+		Namespace: delayedJob.Namespace,
+		Name:      delayedJob.Name,
+	}, job)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			t.Errorf("The reconciler never created the job")
+		} else {
+			t.Fatalf("Failed to fetch created job (%v)", err)
+		}
+	}
+}
+
 func TestDelayedJobReconciler_ReconcileCreatedJobHasItsOwnerRefSetToTheDelayedJob(t *testing.T) {
 	delayedJob := getSimpleDelayedJobSpec()
 	s := scheme.Scheme
@@ -166,6 +243,7 @@ func TestDelayedJobReconciler_ReconcileCreatedJobHasItsOwnerRefSetToTheDelayedJo
 	controller := controllers.DelayedJobReconciler{
 		Client: clientBuilder.Build(),
 		Scheme: s,
+		Clock:  testing2.NewFakeClock(time.Now()),
 	}
 
 	_, err := controller.Reconcile(context.TODO(), reconcile.Request{
