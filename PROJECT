@@ -6,4 +6,14 @@ plugins:
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: delayed-job-operator
 repo: github.com/containersolutions/delayed-jobs-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: container-solutions.com
+  group: batch
+  kind: DelayedJob
+  path: github.com/containersolutions/delayed-jobs-operator/api/v1alpha1
+  version: v1alpha1
 version: "3"

@@ -1,0 +1,24 @@
+# permissions for end users to edit delayedjobs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: delayedjob-editor-role
+rules:
+- apiGroups:
+  - batch.container-solutions.com
+  resources:
+  - delayedjobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch.container-solutions.com
+  resources:
+  - delayedjobs/status
+  verbs:
+  - get

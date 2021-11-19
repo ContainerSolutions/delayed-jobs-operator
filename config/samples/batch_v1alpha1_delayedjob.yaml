@@ -1,0 +1,6 @@
+apiVersion: batch.container-solutions.com/v1alpha1
+kind: DelayedJob
+metadata:
+  name: delayedjob-sample
+spec:
+  # Add fields here
