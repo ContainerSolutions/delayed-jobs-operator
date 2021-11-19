@@ -51,3 +51,10 @@ spec:
   backoffLimit: 4
 ```
 
+## Installing the Operator
+
+We have created a simplified bundle to install the Operator, which can easily be installed sing `kustomize`
+
+```bash
+kustomize build https://github.com/ContainerSolutions/delayed-jobs-operator.git/config/simple | kubectl apply -f -
+```
