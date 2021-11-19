@@ -1,0 +1,8 @@
+namespace: delayed-job-operator-system
+
+namePrefix: delayed-job-operator-
+
+bases:
+- namespace.yml
+- ../crd
+- ../rbac
