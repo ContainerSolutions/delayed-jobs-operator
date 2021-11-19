@@ -223,8 +223,6 @@ func TestDelayedJobReconciler_ReconcileCreatesJobOnlyAfterDelayUntilHasPassed(t 
 func TestDelayedJobReconciler_ReconcileReturnsRequeueWithDelayEqualToDelayDifference(t *testing.T) {
 	// Setup fake clock first
 	fakeClock := testing2.NewFakeClock(time.Now())
-	fakeClock.SetTime(time.Now())
-
 	delayedJob := getSimpleDelayedJobSpec()
 	delayedJob.Spec.DelayUntil = types2.Epoch(fakeClock.Now().Unix() + 60)
 	s := scheme.Scheme
@@ -240,7 +238,7 @@ func TestDelayedJobReconciler_ReconcileReturnsRequeueWithDelayEqualToDelayDiffer
 	}
 
 	// The time has not yet passed, so if we reconcile, the job should not be created
-	_, err := controller.Reconcile(context.TODO(), reconcile.Request{
+	result, err := controller.Reconcile(context.TODO(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Namespace: delayedJob.Namespace,
 			Name:      delayedJob.Name,
@@ -250,46 +248,10 @@ func TestDelayedJobReconciler_ReconcileReturnsRequeueWithDelayEqualToDelayDiffer
 		t.Fatalf("Failed to reconcile without error (%v)", err)
 	}
 
-	// Check that the job does not yet exist
-	job := &batchv1.Job{}
-	err = controller.Client.Get(context.TODO(), client.ObjectKey{
-		Namespace: delayedJob.Namespace,
-		Name:      delayedJob.Name,
-	}, job)
-	if err == nil {
-		// We are expecting an error for NotFound.
-		// If we don't receive an error, the test should fail
-		t.Fatalf("Expected NotFound error when looking for Job. Job was created too early.")
-	}
-	if !errors.IsNotFound(err) {
-		// If the error isn't NotFound, something else is wrong
-		t.Fatalf("Unexpected error returned when looking for Job: (%v)", err)
+	if result.RequeueAfter != 60 {
+		t.Errorf("Expected RequeuAfter to equal Duration between DelayUntil and Now(). Expected %d, got %d", 60, result.RequeueAfter)
 	}
 
-	fakeClock.SetTime(time.Now().Add(time.Duration(61) * time.Second))
-	controller.Clock = fakeClock
-	_, err = controller.Reconcile(context.TODO(), reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: delayedJob.Namespace,
-			Name:      delayedJob.Name,
-		},
-	})
-	if err != nil {
-		t.Fatalf("Failed to reconcile without error (%v)", err)
-	}
-
-	// Now we should see the Job in the client
-	err = controller.Client.Get(context.TODO(), client.ObjectKey{
-		Namespace: delayedJob.Namespace,
-		Name:      delayedJob.Name,
-	}, job)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			t.Errorf("The reconciler never created the job")
-		} else {
-			t.Fatalf("Failed to fetch created job (%v)", err)
-		}
-	}
 }
 
 func TestDelayedJobReconciler_ReconcileCreatedJobHasItsOwnerRefSetToTheDelayedJob(t *testing.T) {
