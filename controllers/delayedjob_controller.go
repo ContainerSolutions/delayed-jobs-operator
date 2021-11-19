@@ -18,8 +18,8 @@ package controllers
 
 import (
 	"context"
+	v1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -59,6 +59,18 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
+	}
+
+	logger.Info("Creating job for DelayedJob")
+	// We need to create a job from
+	job := &v1.Job{
+		TypeMeta:   delayedJob.TypeMeta,
+		ObjectMeta: delayedJob.ObjectMeta,
+		Spec:       delayedJob.Spec.JobSpec,
+	}
+	err = r.Client.Create(context.TODO(), job)
+	if err != nil {
+		logger.Error(err, "Could not create job for DelayedJob")
 	}
 
 	return ctrl.Result{}, nil
