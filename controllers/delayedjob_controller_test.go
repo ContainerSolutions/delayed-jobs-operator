@@ -46,6 +46,7 @@ func getSimpleDelayedJobSpec() v1alpha1.DelayedJob {
 			Labels: map[string]string{
 				"app": "foo",
 			},
+			UID: "some-value",
 		},
 		Spec: v1alpha1.DelayedJobSpec{
 			JobSpec: getSimpleJobSpec(),
@@ -150,5 +151,41 @@ func TestDelayedJobReconciler_ReconcileCreatesJob(t *testing.T) {
 		} else {
 			t.Fatalf("Failed to fetch created job (%v)", err)
 		}
+	}
+}
+
+func TestDelayedJobReconciler_ReconcileCreatedJobHasItsOwnerRefSetToTheDelayedJob(t *testing.T) {
+	delayedJob := getSimpleDelayedJobSpec()
+	s := scheme.Scheme
+	if err := v1alpha1.AddToScheme(s); err != nil {
+		t.Fatalf("Unable to add DelayedJob scheme: (%v)", err)
+	}
+
+	clientBuilder := fake.NewClientBuilder()
+	clientBuilder.WithObjects(&delayedJob)
+	controller := controllers.DelayedJobReconciler{
+		Client: clientBuilder.Build(),
+		Scheme: s,
+	}
+
+	_, err := controller.Reconcile(context.TODO(), reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: delayedJob.Namespace,
+			Name:      delayedJob.Name,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to reconcile without error (%v)", err)
+	}
+
+	job := &batchv1.Job{}
+	// Now we should see the Job in the client
+	controller.Client.Get(context.TODO(), client.ObjectKey{
+		Namespace: delayedJob.Namespace,
+		Name:      delayedJob.Name,
+	}, job)
+
+	if !metav1.IsControlledBy(job, &delayedJob) {
+		t.Error("Expected Job to be controlled by DelayedJob")
 	}
 }
