@@ -29,6 +29,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"time"
 
 	batchv1alpha1 "github.com/containersolutions/delayed-jobs-operator/api/v1alpha1"
@@ -149,5 +150,7 @@ func (r *DelayedJobReconciler) GetNewJob(delayedJob *batchv1alpha1.DelayedJob) *
 func (r *DelayedJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&batchv1alpha1.DelayedJob{}).
+		WithEventFilter(predicate.GenerationChangedPredicate{}).
+		WithEventFilter(predicate.ResourceVersionChangedPredicate{}).
 		Complete(r)
 }
