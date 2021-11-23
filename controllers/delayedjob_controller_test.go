@@ -493,3 +493,73 @@ func TestDelayedJobReconciler_ReconcileCreatedJobHasItsOwnerRefSetToTheDelayedJo
 		t.Error("Expected Job to be controlled by DelayedJob")
 	}
 }
+
+func TestDelayedJobReconciler_JobExists_ReturnsTrueIfJobAlreadyExists(t *testing.T) {
+	// Setup fake clock first
+	s := scheme.Scheme
+	if err := v1alpha1.AddToScheme(s); err != nil {
+		t.Fatalf("Unable to add DelayedJob scheme: (%v)", err)
+	}
+	fakeClock := testing2.NewFakeClock(time.Now())
+
+	delayedJob := getSimpleDelayedJobSpec()
+	delayedJob.Spec.DelayUntil = types2.Epoch(fakeClock.Now().Unix() + 60)
+	job := batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:                       delayedJob.Name,
+			GenerateName:               delayedJob.GenerateName,
+			Namespace:                  delayedJob.Namespace,
+			DeletionGracePeriodSeconds: delayedJob.DeletionGracePeriodSeconds,
+			Labels:                     delayedJob.Labels,
+			Annotations:                delayedJob.Annotations,
+			Finalizers:                 delayedJob.Finalizers,
+		},
+		Spec:   getSimpleJobSpec(),
+		Status: batchv1.JobStatus{},
+	}
+
+	clientBuilder := fake.NewClientBuilder()
+	clientBuilder.WithObjects(&delayedJob, &job)
+	controller := controllers.DelayedJobReconciler{
+		Client: clientBuilder.Build(),
+		Scheme: s,
+		Clock:  fakeClock,
+	}
+
+	// The time has not yet passed, so if we reconcile, the job should not be created
+	exists, err := controller.JobExists(context.TODO(), &delayedJob)
+	if err != nil {
+		t.Fatalf("Did not expect error from JobExists when Job exists, (%v)", err)
+	}
+	if !exists {
+		t.Error("Expected JobExists to return True when job exists")
+	}
+}
+
+func TestDelayedJobReconciler_JobExists_ReturnsFalseIfJobDoesNotExists(t *testing.T) {
+	// Setup fake clock first
+	s := scheme.Scheme
+	if err := v1alpha1.AddToScheme(s); err != nil {
+		t.Fatalf("Unable to add DelayedJob scheme: (%v)", err)
+	}
+	fakeClock := testing2.NewFakeClock(time.Now())
+
+	delayedJob := getSimpleDelayedJobSpec()
+	delayedJob.Spec.DelayUntil = types2.Epoch(fakeClock.Now().Unix() + 60)
+	clientBuilder := fake.NewClientBuilder()
+	clientBuilder.WithObjects(&delayedJob)
+	controller := controllers.DelayedJobReconciler{
+		Client: clientBuilder.Build(),
+		Scheme: s,
+		Clock:  fakeClock,
+	}
+
+	// The time has not yet passed, so if we reconcile, the job should not be created
+	exists, err := controller.JobExists(context.TODO(), &delayedJob)
+	if err != nil {
+		t.Fatalf("Did not expect error from JobExists when Job does not exist, (%v)", err)
+	}
+	if exists {
+		t.Error("Expected JobExists to return False when job does not exist")
+	}
+}

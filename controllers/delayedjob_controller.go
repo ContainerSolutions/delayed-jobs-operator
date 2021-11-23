@@ -73,17 +73,22 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if types.Epoch(r.Clock.Now().Unix()) >= delayedJob.Spec.DelayUntil {
 		logger.Info("Creating job for DelayedJob")
 		// We need to create a job from
-		job := r.GetNewJob(delayedJob)
-		err = ctrl.SetControllerReference(delayedJob, job, r.Scheme)
+		exists, err := r.JobExists(ctx, delayedJob)
 		if err != nil {
-			logger.Error(err, "Could not set DelayedJob as owner of Job")
-		}
-		err = r.Client.Create(context.TODO(), job)
-		if err != nil {
-			logger.Error(err, "Could not create job for DelayedJob")
 			return ctrl.Result{}, err
 		}
-
+		if !exists {
+			job := r.GetNewJob(delayedJob)
+			err = ctrl.SetControllerReference(delayedJob, job, r.Scheme)
+			if err != nil {
+				logger.Error(err, "Could not set DelayedJob as owner of Job")
+			}
+			err = r.Client.Create(context.TODO(), job)
+			if err != nil {
+				logger.Error(err, "Could not create job for DelayedJob")
+				return ctrl.Result{}, err
+			}
+		}
 		meta.SetStatusCondition(&delayedJob.Status.Conditions, metav1.Condition{
 			Type:    batchv1alpha1.ConditionAwaitingDelay,
 			Status:  metav1.ConditionFalse,
@@ -128,6 +133,21 @@ func (r *DelayedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{
 		RequeueAfter: time.Duration(nextRequeue) * time.Second,
 	}, nil
+}
+
+func (r *DelayedJobReconciler) JobExists(ctx context.Context, delayedJob *batchv1alpha1.DelayedJob) (bool, error) {
+	job := v1.Job{}
+	err := r.Get(ctx, client.ObjectKey{
+		Namespace: delayedJob.Namespace,
+		Name:      delayedJob.Name,
+	}, &job)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func (r *DelayedJobReconciler) GetNewJob(delayedJob *batchv1alpha1.DelayedJob) *v1.Job {
