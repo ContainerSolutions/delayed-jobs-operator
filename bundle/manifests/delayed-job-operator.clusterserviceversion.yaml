@@ -140,7 +140,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: chriscmsoft/delayed-job-controller:v0.1
+                image: chriscmsoft/delayed-job-controller:v0.2
                 livenessProbe:
                   httpGet:
                     path: /healthz
